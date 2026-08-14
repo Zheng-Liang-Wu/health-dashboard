@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>完整健康數據監控儀表板 (11欄位全紀錄)</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      margin: 20px;
+      background-color: #f8f9fa;
+      color: #333;
+    }
+    h1, h2 { text-align: center; color: #2c3e50; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+      gap: 20px;
+      max-width: 1200px;
+      margin: 0 auto 40px auto;
+    }
+    .chart-card {
+      background: #ffffff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+    }
+    .table-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: center;
+      font-size: 14px;
+    }
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    th {
+      background-color: #f1f3f5;
+      color: #495057;
+    }
+    tr:hover { background-color: #f8f9fa; }
+  </style>
+</head>
+<body>
+
+  <h1>📊 每日健康與運動全方位監控 (11項指標)</h1>
+
+  <!-- 5 張折線圖區塊 -->
+  <div class="grid">
+    <!-- 1. 體重 & 腰圍 -->
+    <div class="chart-card">
+      <canvas id="weightChart"></canvas>
+    </div>
+
+    <!-- 2. 睡眠小時 & 品質 -->
+    <div class="chart-card">
+      <canvas id="sleepChart"></canvas>
+    </div>
+
+    <!-- 3. 步數 & 有氧運動 -->
+    <div class="chart-card">
+      <canvas id="activityChart"></canvas>
+    </div>
+
+    <!-- 4. 重訓強度 -->
+    <div class="chart-card">
+      <canvas id="strengthChart"></canvas>
+    </div>
+
+    <!-- 5. 蛋白質 & 垃圾食物 -->
+    <div class="chart-card">
+      <canvas id="dietChart"></canvas>
+    </div>
+  </div>
+
+  <!-- 6. 明細表格（包含 note 備註與所有11個欄位） -->
+  <div class="table-container">
+    <h2>📝 數據明細與備註 (Note)</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>日期</th>
+          <th>體重</th>
+          <th>腰圍</th>
+          <th>睡眠小時</th>
+          <th>睡眠品質</th>
+          <th>步數</th>
+          <th>重訓</th>
+          <th>有氧(分)</th>
+          <th>蛋白質</th>
+          <th>垃圾食物</th>
+          <th>備註 (Note)</th>
+        </tr>
+      </thead>
+      <tbody id="dataTableBody">
+        <!-- JS 會自動填入數據 -->
+      </tbody>
+    </table>
+  </div>
+
+  <script>
+    const API_URL = 'https://script.google.com/macros/s/AKfycbx9Itx-fmthX9IsjvVYHCh1wDJIX0obhjRzL6iOdpnD0B9ELHka57ozmcb1jfqQu9fHfQ/exec';
+
+    async function loadAllData() {
+      try {
+        const response = await fetch(API_URL);
+        const data = await response.json();
+
+        if(!data || data.length === 0) {
+          console.warn("沒有抓取到資料");
+          return;
+        }
+
+        const dates = data.map(i => i.date);
+
+        // 1. 體重與腰圍
+        new Chart(document.getElementById('weightChart'), {
+          type: 'line',
+          data: {
+            labels: dates,
+            datasets: [
+              { label: '體重 (kg)', data: data.map(i => i.weight), borderColor: '#3498db', tension: 0.2 },
+              { label: '腰圍 (cm)', data: data.map(i => i.waist), borderColor: '#e67e22', tension: 0.2 }
+            ]
+          },
+          options: { plugins: { title: { display: true, text: '1. 體重與腰圍 (weight, waist)' } } }
+        });
+
+        // 2. 睡眠
+        new Chart(document.getElementById('sleepChart'), {
+          type: 'line',
+          data: {
+            labels: dates,
+            datasets: [
+              { label: '睡眠時數 (hr)', data: data.map(i => i.sleep_hours), borderColor: '#9b59b6', tension: 0.2 },
+              { label: '睡眠品質 (1-10)', data: data.map(i => i.sleep_quality), borderColor: '#f1c40f', tension: 0.2 }
+            ]
+          },
+          options: { plugins: { title: { display: true, text: '2. 睡眠狀況 (sleep_hours, sleep_quality)' } } }
+        });
+
+        // 3. 步數與有氧
+        new Chart(document.getElementById('activityChart'), {
+          type: 'line',
+          data: {
+            labels: dates,
+            datasets: [
+              { label: '步數', data: data.map(i => i.steps), borderColor: '#2ecc71', tension: 0.2 },
+              { label: '有氧 (分鐘)', data: data.map(i => i.cardio_minutes), borderColor: '#e74c3c', tension: 0.2 }
+            ]
+          },
+          options: { plugins: { title: { display: true, text: '3. 步數與有氧 (steps, cardio_minutes)' } } }
+        });
+
+        // 4. 重訓
+        new Chart(document.getElementById('strengthChart'), {
+          type: 'line',
+          data: {
+            labels: dates,
+            datasets: [
+              { label: '重訓強度/次數', data: data.map(i => i.strength_training), borderColor: '#34495e', tension: 0.2 }
+            ]
+          },
+          options: { plugins: { title: { display: true, text: '4. 重量訓練 (strength_training)' } } }
+        });
+
+        // 5. 飲食
+        new Chart(document.getElementById('dietChart'), {
+          type: 'line',
+          data: {
+            labels: dates,
+            datasets: [
+              { label: '蛋白質 (g)', data: data.map(i => i.protein), borderColor: '#1abc9c', tension: 0.2 },
+              { label: '垃圾食物', data: data.map(i => i.junk_food), borderColor: '#d35400', tension: 0.2 }
+            ]
+          },
+          options: { plugins: { title: { display: true, text: '5. 飲食紀錄 (protein, junk_food)' } } }
+        });
+
+        // 6. 渲染表格 (包含 note)
+        const tbody = document.getElementById('dataTableBody');
+        tbody.innerHTML = '';
+        data.forEach(row => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${row.date || '-'}</td>
+            <td>${row.weight ?? '-'}</td>
+            <td>${row.waist ?? '-'}</td>
+            <td>${row.sleep_hours ?? '-'}</td>
+            <td>${row.sleep_quality ?? '-'}</td>
+            <td>${row.steps ?? '-'}</td>
+            <td>${row.strength_training ?? '-'}</td>
+            <td>${row.cardio_minutes ?? '-'}</td>
+            <td>${row.protein ?? '-'}</td>
+            <td>${row.junk_food ?? '-'}</td>
+            <td style="text-align: left;">${row.note || '-'}</td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+      } catch (err) {
+        console.error("讀取失敗:", err);
+      }
+    }
+
+    loadAllData();
+  </script>
+</body>
+</html>
